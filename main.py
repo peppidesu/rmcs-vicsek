@@ -1,44 +1,51 @@
 import numpy as np
 import pygame
 import prefs
-from numba import njit, config, threading_layer, prange
+from numba import config
 import vicsek
 import utils
+import cProfile
+import pstats
+import predator
 
-points = None
-directions = None
+def update_preys(points, directions, aliveMask, predatorPos):
 
-def init():
-    points = utils.generateRandomPoints(prefs.AGENT_COUNT)
-    directions = utils.generateNormalizedDirections(prefs.AGENT_COUNT)
-
-def loop():
-    noise = np.random.rand(prefs.AGENT_COUNT, 2) * 2 - 1
-    noise *= prefs.NOISE_FACTOR
-
-    points, directions = vicsek.update(
+    return vicsek.update(
         points, 
-        directions, 
-        noise
+        directions,
+        aliveMask,
+        predatorPos
     )
 
-def draw():
-    # draw a circle
-    for i in range(prefs.AGENT_COUNT):
+
+def draw(screen, points, predatorPos, aliveMask):
+    pygame.draw.circle(screen, (0,16,32), predatorPos, prefs.detectionRadius)    
+    pygame.draw.circle(screen, (32,0,0), predatorPos, prefs.predatorKillRadius)    
+    for i in range(0, prefs.agentCount, 1):
         point = (int(points[i][0]), int(points[i][1]))       
-        pygame.draw.circle(screen, (255, 255, 255), point, 2)
+        color = (255, 255, 255) if aliveMask[i] else (255,0,0)
+        pygame.draw.circle(screen, color, point, 2)
+
     
-if __name__ == "__main__":
+    pygame.draw.circle(screen, (255,255,0), predatorPos, prefs.predatorKillRadius - 4)
+
+def main():
     config.THREADING_LAYER = 'threadsafe'
 
-    if prefs.SEED != None:
-        np.random.seed(prefs.SEED)
+    if prefs.randomSeed != None:
+        np.random.seed(prefs.randomSeed)
 
-    init()
+    preyPositions = utils.generateRandomPoints(prefs.agentCount)
+    preyDirections = utils.generateNormalizedDirections(prefs.agentCount)
+    aliveMask = np.full(prefs.agentCount, True)
+    
+    predatorPos = utils.generateRandomPoints(1)[0]
+    predatorDir = utils.generateNormalizedDirections(1)[0]
+    satisfaction = 0
 
     # pygame boilerplate ._.
     pygame.init()
-    screen = pygame.display.set_mode((prefs.WIDTH, prefs.HEIGHT))
+    screen = pygame.display.set_mode((prefs.width, prefs.height))
     running = True
     while running:
         for event in pygame.event.get():
@@ -46,9 +53,40 @@ if __name__ == "__main__":
                 running = False
         
         screen.fill((0, 0, 0))
-
-        loop()
-        draw()
+        
+        preyPositions, preyDirections = update_preys(preyPositions, preyDirections, aliveMask, predatorPos)
+        predatorPos, predatorDir, satisfaction, aliveMask = predator.update_predator(predatorPos, predatorDir, satisfaction, aliveMask, preyPositions)
+        draw(screen, preyPositions, predatorPos, aliveMask)
         
         # update screen
         pygame.display.update()
+    
+
+def main_crunch():
+    print("\033[2J")
+    config.THREADING_LAYER = 'threadsafe'
+
+    if prefs.randomSeed != None:
+        np.random.seed(prefs.randomSeed)
+
+    results = []
+    prefs.flockingContribution = 0
+    for i in range(11):
+        preyPositions = utils.generateRandomPoints(prefs.agentCount)
+        preyDirections = utils.generateNormalizedDirections(prefs.agentCount)
+        aliveMask = np.full(prefs.agentCount, True)
+    
+        predatorPos = utils.generateRandomPoints(1)[0]
+        predatorDir = utils.generateNormalizedDirections(1)[0]
+        satisfaction = 0   
+        for j in range(200000):
+            preyPositions, preyDirections = update_preys(preyPositions, preyDirections, aliveMask, predatorPos)
+            predatorPos, predatorDir, satisfaction, aliveMask = predator.update_predator(predatorPos, predatorDir, satisfaction, aliveMask, preyPositions)        
+            if j % 500 == 0:                
+                print(f"\033[1ASimulation {i}/10 - Progress: {j/2000:0.2f} %    ")
+        results.append(sum(map(int, aliveMask)))
+        prefs.flockingContribution += 0.1     
+    print(results)
+
+if __name__ == "__main__":
+    main()

@@ -1,10 +1,36 @@
-WIDTH = 1600
-HEIGHT = 1280
-AGENT_COUNT = 20000 # gpu kernel allows up to 32768
-ALPHA = 0.05
-RADIUS = 50
-WALL_REPELL_RADIUS = 100
-WALL_REPELL_FACTOR = 0.001
-NOISE_FACTOR = 0.2
-DT = 1
-SEED = 0
+width = 800
+height = 800
+agentCount = 2000
+# flocking contribution factor (0 - 1)
+flockingContribution = 0.0
+# flocking radius (px)
+flockingRadius = 40
+# wall repell force radius (px)
+wallRepellRadius = 50
+# wall repell force strength (px / timestep^2)
+wallRepellFactor = 1
+# contribution of discrete noise to agent direction
+directionNoiseFactor = 1
+
+# prey movement speed (px / timestep)
+preySpeed = 2
+# damping coefficient for the prey
+preyDamping = 0.15
+# timestep factor (timesteps / iteration)
+timeStep = 1
+randomSeed = 0
+
+# predator movement speed (px / timestep)
+predatorSpeed = 2.3
+# damping coefficient for the predator
+predatorDamping = 0.01
+# satisfaction delay (in timesteps)
+predatorSatisfactionDelay = 15
+
+# predator kill radius (px)
+predatorKillRadius = 20
+
+# predator detection radius (px)
+detectionRadius = 60
+
+
