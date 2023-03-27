@@ -133,15 +133,15 @@ __global__ void vicsek_update(
 
         new_directions[i * 2 + 1]   += max((float) (wall_repell_radius - points[i * 2 + 1]), 0.0f) 
                                         * net_wall_factor;
+                                        
+        // damping
+        new_directions[i * 2]       = (1 - damping) * directions[i * 2]
+        + damping * new_directions[i * 2];
 
         // apply noise
         float2 eta = vectorNoise(points[i * 2], points[i * 2 + 1]);
         new_directions[i * 2] += eta.x * noise_factor;            
         new_directions[i * 2 + 1] += eta.y * noise_factor;
-        
-        // damping
-        new_directions[i * 2]       = (1 - damping) * directions[i * 2]
-        + damping * new_directions[i * 2];
         
         new_directions[i * 2 + 1]   = (1 - damping) * directions[i * 2 + 1]   
         + damping * new_directions[i * 2 + 1];

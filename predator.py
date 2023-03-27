@@ -5,7 +5,7 @@ import prefs
 from utils import vector_length, normalize_vector
 
 @njit(parallel=True)
-def distancesToPoint(points, target, n):
+def distancesToPoint(points, target, n) -> np.ndarray:
     distances = np.zeros(n)
     for i in prange(n):
         distances[i] = vector_length(points[i] - target)
@@ -13,6 +13,7 @@ def distancesToPoint(points, target, n):
 
 def findClosestAgent(predator, points, aliveMask, n):    
     distances = distancesToPoint(points, predator, n)[aliveMask]
+    if len(distances) == 0: return (None, None)
     indices = np.arange(n)[aliveMask]
     closest = np.argmin(distances)
     return indices[closest], distances[closest]
@@ -20,18 +21,17 @@ def findClosestAgent(predator, points, aliveMask, n):
 
 def update_predator(predatorPos, predatorDir, satisfaction, aliveMask, preys):
     targetDirection = predatorDir
-    if (satisfaction <= 0):        
-        closestIdx, closestDistance = findClosestAgent(predatorPos, preys, aliveMask, prefs.agentCount)            
-        if (closestDistance < prefs.predatorKillRadius):
-            aliveMask[closestIdx] = False
-            satisfaction = prefs.predatorSatisfactionDelay
-        else: 
-            targetDirection = (preys[closestIdx] - predatorPos) / closestDistance                        
+    if (satisfaction <= 0):                
+        closestIdx, closestDistance = findClosestAgent(predatorPos, preys, aliveMask, prefs.agentCount)                    
+        if (closestIdx != None):
+            if (closestDistance < prefs.predatorKillRadius):
+                aliveMask[closestIdx] = False
+                satisfaction = prefs.predatorSatisfactionDelay
+            else: 
+                targetDirection = (preys[closestIdx] - predatorPos) / closestDistance                        
             
     else:
         satisfaction -= prefs.timeStep
-    
-    predatorDir = prefs.predatorDamping * targetDirection + (1 - prefs.predatorDamping) * predatorDir
 
     netWallFactor = (1.0/prefs.wallRepellRadius) * prefs.wallRepellFactor * prefs.timeStep
     predatorDir[0] -= (
@@ -50,6 +50,8 @@ def update_predator(predatorPos, predatorDir, satisfaction, aliveMask, preys):
         max(prefs.wallRepellRadius - predatorPos[1], 0) 
         * netWallFactor
     )
+
+    predatorDir = prefs.predatorDamping * targetDirection + (1 - prefs.predatorDamping) * predatorDir
 
     predatorDir = normalize_vector(predatorDir)
 
