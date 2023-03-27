@@ -1,0 +1,5 @@
+matplotlib==3.7.1
+numba==0.56.4
+numpy==1.23.5
+pycuda==2022.2.2
+pygame==2.2.0
